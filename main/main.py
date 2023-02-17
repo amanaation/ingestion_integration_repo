@@ -1,26 +1,22 @@
 import os
 import datetime;
-import logging
 import warnings
-import json
-logging.basicConfig(format='%(asctime)s,%(msecs)03d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
-    datefmt='%Y-%m-%d:%H:%M:%S',
-    level=logging.INFO)
-logger = logging.getLogger(__name__)
 import pandas as pd
+import logging
+
+logging.basicConfig(format='%(asctime)s,%(msecs)03d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
+                    datefmt='%Y-%m-%d:%H:%M:%S',
+                    level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 from config import Config
 from column_matching import ColumnMM
-from extract import Extraction
 from dotenv import load_dotenv
+from extract import Extraction
 from load import Loader
 from transaction_logger import TLogger
 from transformation import Transformation
 warnings.filterwarnings("ignore")
-
-logging.basicConfig(format='%(asctime)s,%(msecs)03d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
-    datefmt='%Y-%m-%d:%H:%M:%S',
-    level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 load_dotenv()
 pd.set_option('display.max_columns', None)

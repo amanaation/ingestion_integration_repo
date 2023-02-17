@@ -1,12 +1,14 @@
-import logging
+import yaml
+import glob
+import sys
 
+import logging
 logging.basicConfig(format='%(asctime)s,%(msecs)03d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
                     datefmt='%Y-%m-%d:%H:%M:%S',
                     level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-import yaml
-import glob
+sys.path.append("../")
 
 
 class Config:

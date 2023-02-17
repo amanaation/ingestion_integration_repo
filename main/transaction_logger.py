@@ -1,17 +1,15 @@
-import logging
 import os
-from google.api_core.exceptions import NotFound
-
-from connectors.BigQuery import BigQuery
-from dotenv import load_dotenv
-
-load_dotenv()
-
+import logging
 logging.basicConfig(format='%(asctime)s,%(msecs)03d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
                     datefmt='%Y-%m-%d:%H:%M:%S',
                     level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+from google.api_core.exceptions import NotFound
+from ingestion_core_repo.BigQuery import BigQuery
+from dotenv import load_dotenv
+
+load_dotenv()
 
 class TLogger:
     """

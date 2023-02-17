@@ -1,14 +1,13 @@
-import logging
 import json
-
+import logging
 logging.basicConfig(format='%(asctime)s,%(msecs)03d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
                     datefmt='%Y-%m-%d:%H:%M:%S',
                     level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+from connection_mapping import Connectors
 from dotenv import load_dotenv
 from transaction_logger import TLogger
-from connection_mapping import Connectors
 
 load_dotenv()
 
@@ -56,6 +55,8 @@ class Extraction:
 
     def get_last_successful_extract(self):
         last_successful_extract = self.connection.last_successful_extract
+        for value in last_successful_extract:
+            last_successful_extract[value] = str(last_successful_extract[value])
         last_successful_extract = json.dumps(last_successful_extract)
 
         return last_successful_extract
