@@ -1,3 +1,3 @@
-[submodule "Ingestion_core_repo"]
-	path = Ingestion_core_repo
-	url = https://github.com/amanaation/Ingestion_core_repo.git
+[submodule "ingestion_core_repo"]
+	path = ingestion_core_repo
+	url = https://github.com/amanaation/ingestion_core_repo.git
