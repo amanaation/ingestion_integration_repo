@@ -31,22 +31,19 @@ class TLogger:
             os.getenv('LOGGING_GCP_PROJECT_DATASET_NAME'),
             os.getenv('LOGGING_TABLE')))
 
-    def get_last_successful_extract(self, table_details):
+    def get_last_successful_extract(self, destination_table_id):
         query_job = self.bq_client.query(
             f"""
                 SELECT  
                     incremental_columns, 
-                    last_fetched_values
+                    incremental_values
                 FROM 
                     `{self.table_id}`
                 WHERE 
-                    source_table_name = "{table_details["name"]}"
-                    and source = "{table_details["source"]}"
-                    and source_type = "{table_details["source_type"]}"
-
+                destination_table_id = '{destination_table_id}'
                     and extraction_status="Success"
-                    and last_fetched_values is Not Null
-                order by extraction_start_time desc limit 1;
+                    and incremental_values is Not Null
+                order by last_sync_date desc limit 1;
                 """
         )
         results = query_job.result()

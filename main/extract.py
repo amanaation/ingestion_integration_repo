@@ -7,8 +7,7 @@ logger = logging.getLogger(__name__)
 
 from connection_mapping import Connectors
 from dotenv import load_dotenv
-from transaction_logger import TLogger
-
+from bqconfiguration import BQConfiguration
 load_dotenv()
 
 
@@ -63,7 +62,8 @@ class Extraction:
 
     def extract(self):
         logger.info("Fetching last successful extract")
-        last_successful_extract = TLogger().get_last_successful_extract(self.table_details)
+        last_successful_extract = BQConfiguration().get_last_successful_extract(self.table_details["job_id"])
+
         if last_successful_extract:
             last_successful_extract = json.loads(last_successful_extract["last_fetched_value"])
         logger.info(f"Last successful extract : {last_successful_extract}")

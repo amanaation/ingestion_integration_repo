@@ -25,7 +25,7 @@ class ColumnMM:
         Parameters:
             cnx_config (obj) : configuration connection object
             cnx_target (obj) : target connection object
-            object_name (str) : table name
+            destination_table_name (str) : table name
         """
         self.source_schema = source_schema
         self.table_config_details = table_config_details
@@ -92,7 +92,7 @@ class ColumnMM:
         destination_datatype = datatype_mapping_obj[field_source_data_type].value
         return destination_datatype
 
-    def match_columns(self, _table: pd.DataFrame) -> None:
+    def match_columns(self, _table: pd.DataFrame, destination_table_id: str, system_id: str) -> None:
         """
             Main column matching function
             Parameters
@@ -103,10 +103,10 @@ class ColumnMM:
             ---------
             None
         """
-        field_mappings_df = self.get_field_mappings()
+        field_mappings_df = self.get_field_mappings(destination_table_id, system_id)
         logger.info("Starting columns mapping")
         if field_mappings_df.empty:
-            self.save_field_mappings(_table)
+            self.save_field_mappings(_table, destination_table_id, system_id)
         else:
             existing_fields = set(field_mappings_df["column_name"].to_list())
             data_columns = set(_table.columns.to_list())
@@ -117,8 +117,8 @@ class ColumnMM:
                 logger.info(f"Following are the new fields added in the dataset: {new_fields}")
                 self.add_new_fields(self.target_table_id, new_fields)
                 logger.info(f"Adding fields {new_fields} to configuration table")
-                self.save_field_mappings(_table[new_fields], field_mappings_df["object_id"][0],
-                                         field_mappings_df["system_id"][0])
+                self.save_field_mappings(_table[new_fields], destination_table_id,
+                                         system_id)
                 logger.info(f"Successfully added fields {new_fields} to configuration table")
             else:
                 logger.info(f"No new fields to be added")
@@ -189,7 +189,7 @@ class ColumnMM:
             except Exception as e:
                 logger.error(f"{e}")
 
-    def get_field_mappings(self):
+    def get_field_mappings(self, destination_table_id, system_id):
         """
         This function is to check the column metadata present in the config table or not
         returns:
@@ -197,14 +197,13 @@ class ColumnMM:
         """
         _sql_column = f"""SELECT * FROM {self.configuration_table_id} 
                         where 
-                        object_name = '{self.target_table_name}'
-                        and source='{self.source}'
-                        and source_type = '{self.table_config_details['source_type']}'"""
+                        destination_table_id = '{destination_table_id}'
+                        and system_id='{system_id}'"""
 
         df = self.execute(_sql_column, self.configuration_project_id)
         return df
 
-    def save_field_mappings(self, df: pd.DataFrame, object_id: str = None, system_id=None) -> None:
+    def save_field_mappings(self, df: pd.DataFrame, destination_table_id: str = None, system_id=None) -> None:
         """
         This function will insert column metadata into config table if it is a first load
         or if its an existing mapping then add new columns to existing configuration
@@ -212,32 +211,29 @@ class ColumnMM:
         ------------
             df: pd.DataFrame
                 dataframe with source data
-            object_id: str
+            destination_table_id: str
                 Id of the existing column
         Returns:
         ---------
             None
         """
 
+        print("destination_table_id : ", destination_table_id, "system_id : ", system_id)
         info_df = pd.DataFrame()
         number_of_rows = len(df.columns)
         info_df["data_type"] = [str(dtype) for dtype in df.dtypes]
         info_df['column_name'] = df.columns
         info_df["source_table_name"] = [self.source] * number_of_rows
         info_df = info_df.reset_index()
-        info_df["object_name"] = [self.target_table_name] * number_of_rows
+        info_df["destination_table_name"] = [self.target_table_name] * number_of_rows
         info_df["inserted_by"] = ['core_framework'] * number_of_rows
         info_df["column_id"] = [str(uuid.uuid4()) for i in range(number_of_rows)]
-        if not object_id:
-            info_df["object_id"] = [str(uuid.uuid4())] * number_of_rows
-        else:
-            info_df["object_id"] = [object_id] * number_of_rows
 
-        if not system_id:
-            info_df["system_id"] = [str(uuid.uuid4())] * number_of_rows
-        else:
-            info_df["system_id"] = [system_id] * number_of_rows
+        info_df["destination_table_id"] = [destination_table_id] * number_of_rows
+        info_df["system_id"] = [system_id] * number_of_rows
+        info_df["deleted"] = [False] * number_of_rows
 
+        print(info_df)
         del info_df["index"]
 
         info_df.to_gbq(f"{self.configuration_dataset_name}.{self.configuration_table}", self.configuration_project_id,
