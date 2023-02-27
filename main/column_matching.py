@@ -68,7 +68,7 @@ class ColumnMM:
                 pd.Dataframe: Dataframe containing source field details
         """
         source_schema = self.source_schema
-        new_fields_details = source_schema[source_schema["COLUMN_NAME"].isin(map(str.upper, fields))]
+        new_fields_details = source_schema[source_schema["COLUMN_NAME"].isin(fields)]
         new_fields_details["COLUMN_NAME"] = list(map(str.lower, new_fields_details["COLUMN_NAME"]))
         return new_fields_details
 

@@ -64,12 +64,26 @@ class Main:
             extraction_func = extraction_obj.extract()
             bq_conf_obj = BQConfiguration()
 
+            # ------------------------------ Start Configuration entry ------------------------------ 
+
+            system_id = bq_conf_obj.add_configuration_system(table)
+
+            configuration_details_df = bq_conf_obj.add_configuration(table, system_id)
+            destination_table_id = configuration_details_df["destination_table_id"].iloc[0]
+
+            # ------------------------------ End Configuration entry ------------------------------ 
+
+
+
             try:
+                if table["source_type"] == "db":
+                    table["query"] += "  where 1=1 "
                 while True:
 
                     additional_info = ""
 
                     result_df, return_args = next(extraction_func)
+                    print(" result_df : ", result_df)
                     if not return_args["extraction_status"]:
                         extraction_obj.handle_extract_error(return_args)
                         continue
@@ -82,19 +96,9 @@ class Main:
                     # ------------------------------ Start Transformation ------------------------------ 
                     logging.info(f"starting transformation of {len(result_df)} rows from: {table['name']}")
                     transform = Transformation()
-                    result_df = transform.transform(result_df)
+                    result_df = transform.transform(result_df, table)
                     number_of_records_after_transformation += len(result_df)
-                    # ------------------------------ End Transformation ------------------------------ 
-                    
-                    # ------------------------------ Start Configuration entry ------------------------------ 
-
-                    system_id = bq_conf_obj.add_configuration_system(table)
-
-                    configuration_details_df = bq_conf_obj.add_configuration(table, system_id)
-                    destination_table_id = configuration_details_df["destination_table_id"].iloc[0]
-
-                    # ------------------------------ End Configuration entry ------------------------------ 
-
+                    # ------------------------------ End Transformation ------------------------------                     
 
                     # ------------------------------ Start Load ------------------------------ 
 
@@ -173,11 +177,6 @@ class Main:
             logger.info(f"       Completed ETL for : {table['name']} at {extraction_start_time}       ")
             print("#"*140)
 
-
-# if __name__ == "__main__":
-#     Main().run()
-#     # df = pd.read_csv("DailyDelhiClimateTest.csv")
-#     # Main().macth_columns("test_climate_bq", "test_climate_bq", df.head())
 
 
 

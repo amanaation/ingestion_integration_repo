@@ -15,6 +15,7 @@ from uuid import uuid4
 
 pd.set_option('display.max_columns', None)
 
+
 load_dotenv()
 class BQConfiguration:
 
@@ -26,22 +27,81 @@ class BQConfiguration:
                            "target_bq_dataset_name": self.bq_configuration_dataset_name,
                            "target_table_name": self.bq_configuration_table_name}
 
-    def get_bq_client(self, table_name):
+    def get_bq_client(self, table_name: str):
+        """
+        Returns BigQuery client with connection to the table name provided
+
+        Parameters:
+            table_name : str
+                Name of the table to connect to
+
+        Returns:
+            ba_client: BigQuery client with connection to the table name provided
+        """
+
         self.project_details["target_table_name"] = table_name
         bq_client = BigQuery(**self.project_details)
 
         return bq_client
 
-    def generate_destination_table_id(self):
+    def generate_destination_table_id(self) -> uuid4:
+        """
+        Returns:
+            destination_table_id: uuid
+                Unique indentifier of the destination table name
+        """
         return str(uuid4())
 
     def generate_sync_id(self):
+        """
+        Returns:
+            sync_id: uuid
+                Unique indentifier of the sync id
+        """
         return str(uuid4())
 
     def generate_system_id(self):
+        """
+        Returns:
+            system_id: uuid
+                Unique indentifier of the system id
+        """
+
         return str(uuid4())
 
-    def add_configuration(self, configuration_details, system_id):
+    def add_configuration(self, configuration_details: dict, system_id: str) -> dict:
+        """
+        This function adds the configuration details to the configuration table in bigquery nnad returns the configration details as a dataframe
+        with additonal info such as destination_table_id
+
+        Parameters:
+        -------------
+            - configuration_details: dict
+                Required keys:
+                    - name
+                    - source_system_name
+                    - description
+                    - source_schema
+                    - source_type
+
+            - system_id: str
+                System id of the existing table
+            
+
+        Returns:
+        ------------
+            configuration_details: dict
+                 Parameters:
+                    - system_id
+                    - destination_table_id
+                    - destination_table_name
+                    - source_system_name
+                    - source_table_description
+                    - source_schema
+                    - source_table
+                    - source_type
+
+        """
         existing_configuration_details = self.get_configuration_details(configuration_details["source_system_name"], 
                                                                         configuration_details["source_type"], 
                                                                         configuration_details["name"])
@@ -67,17 +127,50 @@ class BQConfiguration:
         logger.info(f"Configuration details exists with system id : {existing_configuration_details['system_id'].iloc[0]} and object id : {existing_configuration_details['destination_table_id'].iloc[0]}")
         return existing_configuration_details
 
-    def add_configuration_job(self, job_details):
+    def add_configuration_job(self, job_details: dict) -> None:
+        """
+        Adds job details to the configuration job table inn bigquery
+
+        Parameters:
+        -------------
+            job_details: dict
+                Required Keys:
+                    job_id
+                    system_id
+                    status
+                    message
+        """
         bq_job_details = pd.DataFrame()
         bq_job_details["job_id"] = [job_details["job_id"]]
-        bq_job_details["system_id"] = [self.generate_system_id()]
+        bq_job_details["system_id"] = [job_details["system_id"]]
         bq_job_details["status"] = [job_details["status"]]
         bq_job_details["message"] = [job_details["message"]]
 
         bq_client = self.get_bq_client(os.getenv("CONFIGURATION_JOB_TABLE_NAME"))
         bq_client.save(bq_job_details)    
 
-    def add_configuration_sync(self, sync_details):
+    def add_configuration_sync(self, sync_details: dict) -> None:
+        """
+        Adds sync details to configuration sync table and returns sync details along with extr parameters like sync id
+
+        Parameters:
+        --------------
+            sync_details: dict
+                Required Keys:
+                    - job_id
+                    - system_id
+                    - destination_table_id
+                    - extraction_status
+                    - number_of_records_from_source
+                    - number_of_records_pushed_to_destination
+                    - incremental_columns
+                    - incremental_values
+        Returns:
+        -----------
+            None
+
+
+        """
         bq_sync_details = pd.DataFrame()
         bq_sync_details["sync_id"] = [self.generate_sync_id()]
         bq_sync_details["job_id"] = [str(sync_details["job_id"])]
@@ -96,16 +189,43 @@ class BQConfiguration:
         bq_client.save(bq_sync_details)
         logger.info(f"Added configuration sync details")
 
-    def get_system_id(self, system_name):
+    def get_system_id(self, system_name: str) -> str:
+        """
+        Returns system id for the corresponding system name
+
+        Parameters:
+        --------------
+            system_name: str
+                Name of the source system
+
+        Returns:
+        -----------
+            system_id: str
+                System ID of the source system
+        """
         _sql = f"select * from {os.getenv('CONFIGURATION_DATASET_NAME')}.{os.getenv('CONFIGURATION_SYSTEM_TABLE_NAME')} where source_system_name = '{system_name}'"
         bq_client = self.get_bq_client(os.getenv('CONFIGURATION_SYSTEM_TABLE_NAME'))
 
-        print("sql query : ", _sql)
         result = bq_client.execute(_sql, bq_client.project_id)
         if not result.empty:
             return result["system_id"].iloc[0]
 
-    def add_configuration_system(self, system_details):
+    def add_configuration_system(self, system_details: dict) -> str:
+        """
+        This function adds system configuration details in bigquuery and returns system id if not exists, if exists then return system id
+
+        Parameters:
+        --------------
+            system_details: dict
+                Required Keys:
+                    - source_system_name
+                    - description
+
+        Returns:
+        -------------
+            system_id : str
+
+        """
 
         system_id = self.get_system_id(system_details["source_system_name"])
         if system_id:
@@ -125,7 +245,28 @@ class BQConfiguration:
 
         return system_id
 
-    def get_configuration_details(self, source_system_name, source_type, source_table_name):
+    def get_configuration_details(self, source_system_name: str, source_type: str, source_table_name: str) -> pd.DataFrame:
+        """
+        Returns the destination id and system id from the configuration table
+
+        Parameters:
+        --------------
+            source_system_name: str
+                Name ofthe source system
+
+            source_type: str
+                Type of source e.g., db, file, api, etc.
+
+            source_table_name: str
+                Name of the source table
+
+        Returns:
+        -------------
+            pd.DataFrame: 
+                columns : 
+                    - destination_table_id
+                    - system_id        
+        """
         _sql = f"""select * from {os.getenv('CONFIGURATION_DATASET_NAME')}.{os.getenv('CONFIGURATION_TABLE_NAME')} 
                     where source_system_name = '{source_system_name}' 
                     and source_type = '{source_type}'
@@ -140,7 +281,24 @@ class BQConfiguration:
 
         return pd.DataFrame()
 
-    def get_last_successful_extract(self, destination_table_id):
+    def get_last_successful_extract(self, destination_table_id: str) -> dict:
+
+        """
+        Returns the last successful extract for the detsination table
+
+        Parameters:
+        --------------
+            destination_table_id: str
+                Destination table id
+
+        Returns:
+        -------------
+            last_extract: dict
+                - incremental_column : list
+                - last_fetched_values: dict
+                    e.g. {"column11" : value1, "column2": value2, ........}
+
+        """
         bq_client = self.get_bq_client(os.getenv("CONFIGURATION_SYNC_TABLE_NAME")).client
         table_id = bq_client.get_table("{}.{}.{}".format(
             os.getenv('CONFIGURATION_PROJECT_ID'),
