@@ -30,7 +30,7 @@ class Extraction:
                 - port:
                 - DB: 
         """
-        source = Connectors[table_details["source"]].value  # Connectors["api"]
+        source = Connectors[table_details["source"]].value
         self.connection = source(**table_details)
         self.table_details = table_details
 
@@ -49,7 +49,6 @@ class Extraction:
         else:
             last_successful_extract = None
 
-        print("last_successful_extract : ", last_successful_extract)
         return last_successful_extract
 
     def get_last_successful_extract(self):
@@ -73,7 +72,8 @@ class Extraction:
             **self.table_details)
         try:
             while True:
-                yield next(connection_extract_function)
+                result = next(connection_extract_function)
+                yield result
         except StopIteration:
             print("Stopping extraction")
             pass

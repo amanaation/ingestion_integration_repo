@@ -17,18 +17,21 @@ from extract import Extraction
 from load import Loader
 from transaction_logger import TLogger
 from transformation import Transformation
+
 warnings.filterwarnings("ignore")
 
 load_dotenv()
 pd.set_option('display.max_columns', None)
 
+
 class Main:
     def __init__(self) -> None:
         pass
 
-    def match_columns(self, result_df, table_config_details, source_schema_definition, destination_table_id, system_id):
+    def match_columns(self, result_df, table_config_details, source_schema_definition, destination_table_id,
+                      system_id, source_schema):
         cmm = ColumnMM(table_config_details, source_schema_definition)
-        cmm.match_columns(result_df, destination_table_id, system_id)
+        cmm.match_columns(result_df, source_schema, destination_table_id, system_id)
 
     def complete_transaction_logging(self):
         pass
@@ -56,9 +59,9 @@ class Main:
                 incremental_columns = list(table["incremental_column"].keys())
 
             # ------------------------------ start extract ------------------------------ 
-            print("#"*140)
+            print("#" * 140)
             logger.info(f"Starting ETL for : {table['name']} at {extraction_start_time}       ")
-            print("#"*140)
+            print("#" * 140)
             extraction_obj = Extraction(table)
 
             extraction_func = extraction_obj.extract()
@@ -73,17 +76,12 @@ class Main:
 
             # ------------------------------ End Configuration entry ------------------------------ 
 
-
-
             try:
-                if table["source_type"] == "db":
-                    table["query"] += "  where 1=1 "
                 while True:
 
                     additional_info = ""
 
                     result_df, return_args = next(extraction_func)
-                    print(" result_df : ", result_df)
                     if not return_args["extraction_status"]:
                         extraction_obj.handle_extract_error(return_args)
                         continue
@@ -107,40 +105,55 @@ class Main:
                         logging.info(f"Starting loading into {table['target_table_name']} at {table['destination']}")
                         loader_obj = Loader(table)
                         if not destination_schema_created:
-                            logging.info(f"Getting schema details of source table `{table['name']}` from {table['source']}")
-                            source_schema = extraction_obj.get_schema(*[table["name"], result_df])
-                            logging.info(f"Following is the source schema details `{table['name']}` from {table['source']}")
+                            logging.info(
+                                f"Getting schema details of source table `{table['name']}` from {table['source']}")
+
+                            if "schema_details" in table:
+                                source_schema = {"COLUMN_NAME": list(table["schema_details"].keys()),
+                                                 "DATA_TYPE": list(table["schema_details"].values())}
+                                source_schema = pd.DataFrame(source_schema)
+                            else:
+                                if "drop_columns" in table:
+                                    source_schema = extraction_obj.get_schema(*[table["name"], result_df, table["drop_columns"]])
+                                else:
+                                    source_schema = extraction_obj.get_schema(*[table["name"], result_df])
+
+                            logging.info(
+                                f"Following is the source schema details `{table['name']}` from {table['source']}")
                             logger.info(f"\n{source_schema}")
 
                             # ------------------------------ Start Column Mapping ------------------------------
 
-                            self.match_columns(result_df.head(), table, source_schema, destination_table_id, system_id)
+                            self.match_columns(result_df.head(), table, source_schema, destination_table_id, system_id,
+                                               source_schema)
 
                             # ------------------------------ End Column Mapping ------------------------------
 
                             loader_obj.create_schema(source_schema, table["source"])
                             destination_schema_created = True
                         loader_obj.load(result_df)
-                        logging.info(f"Successfully loaded {len(result_df)} rows in {table['target_table_name']} at {table['destination']}")
+                        logging.info(
+                            f"Successfully loaded {len(result_df)} rows in {table['target_table_name']} at {table['destination']}")
 
                         if return_args:
                             pass
 
-            # ------------------------------ End Load ------------------------------ 
+            # ------------------------------------- End Load ---------------------------------------
 
             # ------------------------------ Start Transaction Logging ------------------------------ 
 
             except StopIteration:
                 pass
-            
+
             # last_fetched_values = extraction_obj.update_last_successful_extract()
             last_fetched_values = extraction_obj.get_last_successful_extract()
 
             logger.info(f"Last fetched values : {last_fetched_values}")
 
             load_status = "Success"
-            logging.info(f"Successfully loaded {len(result_df)} records into {table['target_table_name']} at {table['destination']}")
-            
+            logging.info(
+                f"Successfully loaded {len(result_df)} records into {table['target_table_name']} at {table['destination']}")
+
             try:
                 pass
             except Exception as e:
@@ -153,30 +166,26 @@ class Main:
                 extraction_end_time = datetime.datetime.now()
 
                 # try:
-                    # Log transaction history
+                # Log transaction history
                 sync_details = {
-                                "destination_table_id": destination_table_id,
-                                "system_id": system_id,
-                                "job_id": table['job_id'],
+                    "destination_table_id": destination_table_id,
+                    "system_id": system_id,
+                    "job_id": table['job_id'],
 
-                                "extraction_status": load_status,
-                                "number_of_records_from_source": number_of_records_from_source,
-                                "number_of_records_pushed_to_destination": number_of_records_after_transformation,
+                    "extraction_status": load_status,
+                    "number_of_records_from_source": number_of_records_from_source,
+                    "number_of_records_pushed_to_destination": number_of_records_after_transformation,
 
-                                "additional_info": str(additional_info),
-                                "incremental_columns": str(incremental_columns),
-                                "incremental_values": last_fetched_values,
-                                }
+                    "additional_info": str(additional_info),
+                    "incremental_columns": str(incremental_columns),
+                    "incremental_values": last_fetched_values,
+                }
 
                 bq_conf_obj.add_configuration_sync(sync_details)
 
                 # except Exception as e:
                 #     logging.error("Failed to log status in the reporting table")
             # ------------------------------ End Transaction Logging ------------------------------ 
-            print("#"*140)
+            print("#" * 140)
             logger.info(f"       Completed ETL for : {table['name']} at {extraction_start_time}       ")
-            print("#"*140)
-
-
-
-
+            print("#" * 140)

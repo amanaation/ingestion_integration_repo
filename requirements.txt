@@ -65,3 +65,4 @@ toolz==0.12.0
 typing-extensions==4.4.0
 urllib3==1.26.14
 yarl==1.8.2
+google-cloud-secret-manager==2.10.0
