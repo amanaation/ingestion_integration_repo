@@ -1,0 +1,25 @@
+on:
+  # schedule:
+  #  - cron: "*/5 * * * *"
+  workflow_dispatch:
+  push:
+    branches:
+      - development
+
+name: Push to GCS
+
+jobs:
+  deploy:
+    name: Authenticating
+    steps:
+    - id: 'auth'
+      uses: 'google-github-actions/auth@v1'
+      with:
+        workload_identity_provider: 'projects/turing-nature-374608/locations/global/workloadIdentityPools/my-pool/providers/my-provider'
+        service_account: 'service-86727156939@cloudcomposer-accounts.iam.gserviceaccount.com'
+
+    - id: 'upload-folder'
+      uses: 'google-github-actions/upload-cloud-storage@v1'
+      with:
+        path: '/dev'
+        destination: 'git-repos1'
