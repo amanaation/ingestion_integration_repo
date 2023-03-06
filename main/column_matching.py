@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 import os
 import uuid
 import pandas as pd
-from datatypes import SourceDestinationTypeMapping
+from ingestion_integration_repo.main.datatypes import SourceDestinationTypeMapping
 from dotenv import load_dotenv
 from google.cloud import bigquery as bq
 
@@ -180,7 +180,9 @@ class ColumnMM:
         """
         source_field_types = self.get_source_data_type(fields)
         source_field_types["COLUMN_NAME"] = source_field_types["COLUMN_NAME"].apply(str.upper)
+        print(source_field_types)
         for field in fields:
+            print("field : ", field)
             source_field_type = source_field_types[source_field_types["COLUMN_NAME"] == field]["DATA_TYPE"].to_list()[0]
             destination_field_type = self.get_destination_field_type(self.source, source_field_type)
             logger.info(f"Adding field {field} of type {destination_field_type}")
@@ -238,14 +240,14 @@ class ColumnMM:
         """
 
         info_df = pd.DataFrame()
-        number_of_rows = len(df.columns)
+        number_of_rows = len(source_schema)
         target_data_types = [self.get_destination_field_type(self.table_config_details["source"],
                                                              field_source_data_type)
                              for field_source_data_type in source_schema["DATA_TYPE"]]
         info_df["data_type"] = target_data_types
 
-        info_df['column_name'] = df.columns
-        info_df["source_table_name"] = [self.source] * number_of_rows
+        info_df['column_name'] = source_schema["COLUMN_NAME"]
+        info_df["source_table_name"] = [self.table_config_details["name"]] * number_of_rows
         info_df = info_df.reset_index()
         info_df["destination_table_name"] = [self.target_table_name] * number_of_rows
         info_df["inserted_by"] = ['core_framework'] * number_of_rows

@@ -6,7 +6,7 @@ logging.basicConfig(format='%(asctime)s,%(msecs)03d %(levelname)-8s [%(filename)
 logger = logging.getLogger(__name__)
 
 from google.api_core.exceptions import NotFound
-from ingestion_core_repo.BigQuery import BigQuery
+from ingestion_integration_repo.main.ingestion_core_repo.BigQuery import BigQuery
 from dotenv import load_dotenv
 
 load_dotenv()

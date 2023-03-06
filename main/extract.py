@@ -5,9 +5,9 @@ logging.basicConfig(format='%(asctime)s,%(msecs)03d %(levelname)-8s [%(filename)
                     level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-from connection_mapping import Connectors
+from ingestion_integration_repo.main.connection_mapping import Connectors
 from dotenv import load_dotenv
-from bqconfiguration import BQConfiguration
+from ingestion_integration_repo.main.bqconfiguration import BQConfiguration
 load_dotenv()
 
 
@@ -59,12 +59,12 @@ class Extraction:
 
         return last_successful_extract
 
-    def extract(self):
+    def extract(self, destination_table_id):
         logger.info("Fetching last successful extract")
-        last_successful_extract = BQConfiguration().get_last_successful_extract(self.table_details["job_id"])
+        last_successful_extract = BQConfiguration().get_last_successful_extract(destination_table_id)
 
         if last_successful_extract:
-            last_successful_extract = json.loads(last_successful_extract["last_fetched_value"])
+            last_successful_extract = json.loads(last_successful_extract)
         logger.info(f"Last successful extract : {last_successful_extract}")
 
         connection_extract_function = self.connection.extract(

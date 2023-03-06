@@ -1,8 +1,9 @@
 import yaml
 import glob
 import sys
-
+import pandas as pd
 import logging
+
 logging.basicConfig(format='%(asctime)s,%(msecs)03d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
                     datefmt='%Y-%m-%d:%H:%M:%S',
                     level=logging.INFO)
@@ -11,33 +12,48 @@ logger = logging.getLogger(__name__)
 sys.path.append("../")
 
 
+#
+# class Config:
+#     """
+#         Reads config file from the specified path
+#     """
+#
+#     def __init__(self, path_to_yaml_files: str):
+#         """
+#             Reads config file from the specified path
+#             Parameters
+#             -----------
+#                 path_to_yaml_files: str
+#                     Config yaml file path
+#         """
+#         self.path = path_to_yaml_files
+#
+#     def get_config(self, file_name) -> list:
+#         """
+#             Returns list of configs read from the path
+#         """
+#         file_path = f"{self.path}/{file_name}.yaml"
+#         with open(file_path, 'r') as stream:
+#             try:
+#                 return yaml.safe_load(stream)
+#             except yaml.YAMLError as exc:
+#                 logger.error(exc)
+#
+
 class Config:
-    """
-        Reads config file from the specified path
-    """
 
-    def __init__(self, path_to_yaml_files: str):
-        """
-            Reads config file from the specified path
-            Parameters
-            -----------
-                path_to_yaml_files: str
-                    Config yaml file path 
-        """
-        self.path = path_to_yaml_files
+    def __init__(self, bucket_name):
 
-    def get_config(self) -> list:
-        """
-            Returns list of configs read from the path
-        """
-        files = glob.glob(f"{self.path}/*.yaml")  # list of all .yaml files in a directory
-        configs = []
-        for file in files:
-            logger.info(f"Reading config file {file}")
+        self.bucket_name = bucket_name
 
-            with open(file, 'r') as stream:
-                try:
-                    configs.append(yaml.safe_load(stream))
-                except yaml.YAMLError as exc:
-                    logger.error(exc)
-        return configs
+    def get_config(self, source_system_name, prefix=None):
+
+        if prefix:
+            file_path = f"gs://{self.bucket_name}/{prefix}/{source_system_name}.json"
+        else:
+            file_path = f"gs://{self.bucket_name}/{source_system_name}.json"
+
+        config = pd.read_json(file_path)
+        config = config.to_dict(orient='records')
+
+        return config

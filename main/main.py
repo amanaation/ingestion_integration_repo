@@ -9,15 +9,19 @@ logging.basicConfig(format='%(asctime)s,%(msecs)03d %(levelname)-8s [%(filename)
                     level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-from bqconfiguration import BQConfiguration
-from config import Config
-from column_matching import ColumnMM
-from dotenv import load_dotenv
-from extract import Extraction
-from load import Loader
-from transaction_logger import TLogger
-from transformation import Transformation
+import sys
+sys.path.append("../../")
+sys.path.append("/home/airflow/gcs/ingestion_integration_repo/")
+# sys.path.append("/home/airflow/gcs/ingestion_integration_repo/main/")
 
+
+from ingestion_integration_repo.main.bqconfiguration import BQConfiguration
+from ingestion_integration_repo.main.column_matching import ColumnMM
+from dotenv import load_dotenv
+from ingestion_integration_repo.main.extract import Extraction
+from ingestion_integration_repo.main.load import Loader
+from ingestion_integration_repo.main.transformation import Transformation
+from pprint import  pprint
 warnings.filterwarnings("ignore")
 
 load_dotenv()
@@ -46,6 +50,7 @@ class Main:
         # Reading configs
 
         if table["extract"]:
+            # pprint(table)
             # try:
             incremental_columns = []
             result_df = pd.DataFrame()
@@ -62,9 +67,6 @@ class Main:
             print("#" * 140)
             logger.info(f"Starting ETL for : {table['name']} at {extraction_start_time}       ")
             print("#" * 140)
-            extraction_obj = Extraction(table)
-
-            extraction_func = extraction_obj.extract()
             bq_conf_obj = BQConfiguration()
 
             # ------------------------------ Start Configuration entry ------------------------------ 
@@ -75,6 +77,12 @@ class Main:
             destination_table_id = configuration_details_df["destination_table_id"].iloc[0]
 
             # ------------------------------ End Configuration entry ------------------------------ 
+
+            extraction_obj = Extraction(table)
+
+            extraction_func = extraction_obj.extract(destination_table_id)
+            temp_dataset_name = "temp"
+            temp_destination_table_name = f'{table["target_table_name"]}_temp'
 
             try:
                 while True:
@@ -89,7 +97,7 @@ class Main:
                     number_of_records_from_source += len(result_df)
 
                     logging.info(f"Extracted {len(result_df)} rows from: {table['name']}")
-                    # ------------------------------ End extract ------------------------------ 
+                    # ------------------------------ End extract ------------------------------
 
                     # ------------------------------ Start Transformation ------------------------------ 
                     logging.info(f"starting transformation of {len(result_df)} rows from: {table['name']}")
@@ -103,7 +111,7 @@ class Main:
                     if number_of_records_after_transformation:
                         # check columns discrepancy
                         logging.info(f"Starting loading into {table['target_table_name']} at {table['destination']}")
-                        loader_obj = Loader(table)
+                        loader_obj = Loader(temp_dataset_name, temp_destination_table_name, table)
                         if not destination_schema_created:
                             logging.info(
                                 f"Getting schema details of source table `{table['name']}` from {table['source']}")
@@ -135,8 +143,25 @@ class Main:
                         logging.info(
                             f"Successfully loaded {len(result_df)} rows in {table['target_table_name']} at {table['destination']}")
 
+                        break
+
                         if return_args:
                             pass
+
+                #  ------------- Start Merge tables ----------------------
+                target_dataset_name = table["target_bq_dataset_name"]
+                target_table_name = table["target_table_name"]
+                target_table_id = f"{target_dataset_name}.{target_table_name}"
+
+                temp_source_dataset = 'temp'
+                temp_source_table_name = f'{target_table_name}_temp'
+                temp_source_table_id = f"{temp_source_dataset}.{temp_source_table_name}"
+
+                merge_loader_obj = Loader(table["target_bq_dataset_name"], table["target_table_name"], table)
+                merge_loader_obj.create_schema(source_schema, table['source'])
+                merge_loader_obj.upsert_data(temp_source_table_id, target_table_id, source_schema)
+                #  ------------- End Merge tables ----------------------
+
 
             # ------------------------------------- End Load ---------------------------------------
 
@@ -147,7 +172,6 @@ class Main:
 
             # last_fetched_values = extraction_obj.update_last_successful_extract()
             last_fetched_values = extraction_obj.get_last_successful_extract()
-
             logger.info(f"Last fetched values : {last_fetched_values}")
 
             load_status = "Success"
@@ -171,6 +195,7 @@ class Main:
                     "destination_table_id": destination_table_id,
                     "system_id": system_id,
                     "job_id": table['job_id'],
+                    "connections": table["connections"],
 
                     "extraction_status": load_status,
                     "number_of_records_from_source": number_of_records_from_source,

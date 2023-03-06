@@ -4,7 +4,8 @@ sales_hierarchy:
     job_id: 10001
     extract: true
     source: oracle
-    connection: ["oracle_credentials"]
+    source_schema: "XEPDB1"
+    connections: ["oracle_credentials", "connection2"]
     source_type: db  # possible values: db, files, api
     destination: bq
     description: ""

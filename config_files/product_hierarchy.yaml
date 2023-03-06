@@ -1,22 +1,33 @@
 product_hierarchy:
-  - name: gcs_climate
+  - task_name: task_gcs_climate
+    name: gcs_climate
     job_id: 10002
     extract: false
+    connections: ["gcs_credentials"]
     source: gcs
     source_type: file  # possible values: db, files, api
     destination: bq
+    description: ""
+    source_schema: gcs_climate
 
     # Table Info
     source_gcs_project_id: "turing-nature-374608"
     source_gcs_bucket_name: "activision_demo"
-    source_gcs_file_path: "sellthru/queue/inventory/2023-02-14"
+    source_gcs_file_path: "sellthru/queue/inventory/2023-02-14/"
 
     # Query/Frequency info
     frequency: daily # (options: hourly, daily, weekly, monthly, yearly)
     adaptive_framework: true
+    use_adaptive_framework: True
+    drop_columns:
+      - test
+      - humidity
+
 
     # destination_details
     target_project_id: turing-nature-374608
     target_bq_dataset_name: file_test
     target_table_name: file_climate
     target_operation: t # (a: for append, t: for truncate)
+
+  - task_name: second_task
