@@ -58,7 +58,7 @@ class Main:
             extraction_start_time = datetime.datetime.now()
             number_of_records_from_source = 0
             number_of_records_after_transformation = 0
-            last_fetched_values = {}
+            first_load = True
 
             if "incremental_column" in table:
                 incremental_columns = list(table["incremental_column"].keys())
@@ -81,8 +81,6 @@ class Main:
             extraction_obj = Extraction(table)
 
             extraction_func = extraction_obj.extract(destination_table_id)
-            temp_dataset_name = "dataset_tmp"
-            temp_destination_table_name = f'{table["target_table_name"]}_temp'
 
             try:
                 while True:
@@ -109,11 +107,16 @@ class Main:
                     # ------------------------------ Start Load ------------------------------ 
 
                     if number_of_records_after_transformation:
-                        # check columns discrepancy
 
-                        logging.info(f"Starting loading into {table['target_table_name']} at {table['destination']}")
-                        loader_obj = Loader(temp_dataset_name, temp_destination_table_name, table)
-                        if not destination_schema_created:
+                        if first_load:
+                            target_project_id = table['target_project_id']
+                            temp_dataset_name = "dataset_temp"
+                            temp_destination_table_name = f"{table['target_table_name']}_temp"
+                            temp_table_id = f"{target_project_id}.{temp_dataset_name}.{temp_destination_table_name}"
+
+                            logging.info(f"Starting loading into {table['target_table_name']} at {table['destination']}")
+                            loader_obj = Loader(temp_dataset_name, temp_destination_table_name, table)
+
                             logging.info(
                                 f"Getting schema details of source table `{table['name']}` from {table['source']}")
 
@@ -128,7 +131,7 @@ class Main:
                                     source_schema = extraction_obj.get_schema(*[table["name"], result_df])
 
                             logging.info(
-                                f"Following is the source schema details `{table['name']}` from {table['source']}")
+                                f"Following is the source schema details of `{table['name']}` from {table['source']}")
                             logger.info(f"\n{source_schema}")
 
                             # ------------------------------ Start Column Mapping ------------------------------
@@ -138,9 +141,20 @@ class Main:
 
                             # ------------------------------ End Column Mapping ------------------------------
 
+                            loader_obj.load(result_df)
+
                             loader_obj.create_schema(source_schema, table["source"])
+                            loader_obj.dataset_name = table["target_bq_dataset_name"]
+                            loader_obj.destination_table_name = target_table_name
+                            loader_obj.table_id = f"{self.project_id}.{self.dataset_name}.{self.destination_table_name}"
+
+                            loader_obj.create_schema(source_schema, table["source"])
+                            loader_obj.upsert_data(temp_table_id, loader_obj.table_id, source_schema)
+
+                        else:
                             destination_schema_created = True
-                        loader_obj.load(result_df)
+                            first_load = False
+                            loader_obj.load(result_df)
                         logging.info(
                             f"Successfully loaded {len(result_df)} rows in {table['target_table_name']} at {table['destination']}")
 
