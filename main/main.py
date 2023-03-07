@@ -81,7 +81,7 @@ class Main:
             extraction_obj = Extraction(table)
 
             extraction_func = extraction_obj.extract(destination_table_id)
-            temp_dataset_name = "temp"
+            temp_dataset_name = "dataset_tmp"
             temp_destination_table_name = f'{table["target_table_name"]}_temp'
 
             try:
@@ -110,6 +110,7 @@ class Main:
 
                     if number_of_records_after_transformation:
                         # check columns discrepancy
+
                         logging.info(f"Starting loading into {table['target_table_name']} at {table['destination']}")
                         loader_obj = Loader(temp_dataset_name, temp_destination_table_name, table)
                         if not destination_schema_created:

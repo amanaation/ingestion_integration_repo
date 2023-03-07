@@ -67,9 +67,7 @@ class Extraction:
             last_successful_extract = json.loads(last_successful_extract)
         logger.info(f"Last successful extract : {last_successful_extract}")
 
-        connection_extract_function = self.connection.extract(
-            last_successful_extract,
-            **self.table_details)
+        connection_extract_function = self.connection.extract(last_successful_extract)
         try:
             while True:
                 result = next(connection_extract_function)
