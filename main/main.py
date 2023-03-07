@@ -154,9 +154,8 @@ class Main:
                 target_table_name = table["target_table_name"]
                 target_table_id = f"{target_dataset_name}.{target_table_name}"
 
-                temp_source_dataset = 'temp'
                 temp_source_table_name = f'{target_table_name}_temp'
-                temp_source_table_id = f"{temp_source_dataset}.{temp_source_table_name}"
+                temp_source_table_id = f"{temp_dataset_name}.{temp_source_table_name}"
 
                 merge_loader_obj = Loader(table["target_bq_dataset_name"], table["target_table_name"], table)
                 merge_loader_obj.create_schema(source_schema, table['source'])

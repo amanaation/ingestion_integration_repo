@@ -121,8 +121,8 @@ class ColumnMM:
                     logger.info(f"Following are the new fields added in the dataset: {new_fields}")
                     self.add_new_fields(self.target_table_id, new_fields)
                     logger.info(f"Adding fields {new_fields} to configuration table")
-                    self.save_field_mappings(_table[new_fields], destination_table_id,
-                                             system_id, source_schema)
+                    self.save_field_mappings(source_schema, destination_table_id,
+                                             system_id)
                     logger.info(f"Successfully added fields {new_fields} to configuration table")
                 else:
                     logger.info(f"No new fields to be added")
@@ -179,10 +179,9 @@ class ColumnMM:
             None
         """
         source_field_types = self.get_source_data_type(fields)
+        fields = [field.upper() for field in fields]
         source_field_types["COLUMN_NAME"] = source_field_types["COLUMN_NAME"].apply(str.upper)
-        print(source_field_types)
         for field in fields:
-            print("field : ", field)
             source_field_type = source_field_types[source_field_types["COLUMN_NAME"] == field]["DATA_TYPE"].to_list()[0]
             destination_field_type = self.get_destination_field_type(self.source, source_field_type)
             logger.info(f"Adding field {field} of type {destination_field_type}")
@@ -224,7 +223,7 @@ class ColumnMM:
 
         return target_types
 
-    def save_field_mappings(self, df: pd.DataFrame, source_schema, destination_table_id: str = None, system_id=None) -> None:
+    def save_field_mappings(self, source_schema, destination_table_id: str = None, system_id=None) -> None:
         """
         This function will insert column metadata into config table if it is a first load
         or if it's an existing mapping then add new columns to existing configuration
@@ -241,6 +240,7 @@ class ColumnMM:
 
         info_df = pd.DataFrame()
         number_of_rows = len(source_schema)
+        print("source_schema : ", source_schema)
         target_data_types = [self.get_destination_field_type(self.table_config_details["source"],
                                                              field_source_data_type)
                              for field_source_data_type in source_schema["DATA_TYPE"]]

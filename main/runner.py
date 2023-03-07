@@ -1,14 +1,9 @@
-import json
-import os
-
-import yaml
-
+import pandas as pd
 from config import Config
 from main import Main
 from pprint import pprint
-from bqconfiguration import BQConfiguration
 from dotenv import load_dotenv
-from ingestion_integration_repo.ingestion_core_repo.Oracle import OracleDatabaseConnection
+from ingestion_integration_repo.main.column_matching import ColumnMM
 
 load_dotenv()
 source_system_name = ["sales_hierarchy", "product_hierarchy"]
@@ -27,11 +22,18 @@ for table in tables:
     if table['extract']:
         table["source_system_name"] = source_system_name
         Main().run(table)
-
-        # func = OracleDatabaseConnection(**table).extract({}, **table)
-        # for i in range(5):
-        #     next(func)
-
+        # source_schema = {"id": "INTEGER",
+        #                  "tdate": "TIMESTAMP",
+        #                  "meantemp": "VARCHAR2",
+        #                  "wind_speed": "VARCHAR2",
+        #                  "meanpressure": "VARCHAR2",
+        #                  "country": "VARCHAR2"}
+        #
+        # source_schema = {"COLUMN_NAME": list(source_schema.keys()), "DATA_TYPE": list(source_schema.values())}
+        #
+        # source_schema = pd.DataFrame(source_schema)
+        # print(source_schema)
+        # ColumnMM(table, source_schema).add_new_fields(table["name"], ["country"])
 
         print("breaking")
 
