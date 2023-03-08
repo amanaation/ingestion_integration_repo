@@ -15,8 +15,6 @@ from ingestion_integration_repo.ingestion_core_repo.BigQuery import BigQuery
 from uuid import uuid4
 
 load_dotenv()
-
-
 class BQConfiguration:
 
     def __init__(self) -> None:
@@ -199,7 +197,8 @@ class BQConfiguration:
 
         else:
             bq_sync_details = pd.DataFrame()
-            bq_sync_details["connections"] = str(sync_details["connections"])
+
+            bq_sync_details["connections"] = [sync_details["connections"]]
             bq_sync_details["job_id"] = [str(sync_details["job_id"])]
             bq_sync_details["system_id"] = [sync_details["system_id"]]
             bq_sync_details["destination_table_id"] = [sync_details["destination_table_id"]]
@@ -213,6 +212,8 @@ class BQConfiguration:
             bq_sync_details["incremental_values"] = [sync_details["incremental_values"]]
 
             bq_client = self.get_bq_client(os.getenv("CONFIGURATION_SYNC_TABLE_NAME"))
+
+            print(bq_sync_details)
             bq_client.save(bq_sync_details)
             logger.info(f"Added configuration sync details")
 

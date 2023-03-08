@@ -35,7 +35,9 @@ class Extraction:
         self.table_details = table_details
 
     def get_schema(self, *args):
-        return self.connection.get_schema(*args)
+        schema = self.connection.get_schema(*args)
+        schema["COLUMN_NAME"] = schema["COLUMN_NAME"].apply(str.lower)
+        return schema
 
     def handle_extract_error(self, args):
         return self.connection.handle_extract_error(args)

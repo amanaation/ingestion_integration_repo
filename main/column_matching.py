@@ -17,7 +17,8 @@ load_dotenv()
 
 class ColumnMM:
     """
-    This class is to do adaptive framework by adding new column and 
+    This class is to do adaptive framework by adding new column and
+
     filling empty string in deleting columns
     """
 
@@ -109,7 +110,7 @@ class ColumnMM:
         field_mappings_df = self.get_field_mappings(destination_table_id, system_id)
         logger.info("Starting columns mapping")
         if field_mappings_df.empty:
-            self.save_field_mappings(_table, source_schema, destination_table_id, system_id)
+            self.save_field_mappings(source_schema, destination_table_id, system_id)
         else:
             if self.table_config_details["use_adaptive_framework"]:
                 existing_fields = set(field_mappings_df["column_name"].to_list())
@@ -121,8 +122,7 @@ class ColumnMM:
                     logger.info(f"Following are the new fields added in the dataset: {new_fields}")
                     self.add_new_fields(self.target_table_id, new_fields)
                     logger.info(f"Adding fields {new_fields} to configuration table")
-                    self.save_field_mappings(source_schema, destination_table_id,
-                                             system_id)
+                    self.save_field_mappings(source_schema, destination_table_id, system_id)
                     logger.info(f"Successfully added fields {new_fields} to configuration table")
                 else:
                     logger.info(f"No new fields to be added")
@@ -178,17 +178,17 @@ class ColumnMM:
             ---------
             None
         """
-        source_field_types = self.get_source_data_type(fields)
-        fields = [field.upper() for field in fields]
-        source_field_types["COLUMN_NAME"] = source_field_types["COLUMN_NAME"].apply(str.upper)
-        for field in fields:
-            source_field_type = source_field_types[source_field_types["COLUMN_NAME"] == field]["DATA_TYPE"].to_list()[0]
-            destination_field_type = self.get_destination_field_type(self.source, source_field_type)
-            logger.info(f"Adding field {field} of type {destination_field_type}")
+        destination_schema = self.get_source_data_type(fields)
+        destination_schema["COLUMN_NAME"] = destination_schema["COLUMN_NAME"].apply(str.upper)
+        for index, row in destination_schema.iterrows():
+            row = row.to_dict()
+            field = row["COLUMN_NAME"]
+            data_type = row["DATA_TYPE"]
+            logger.info(f"Adding field {field} of type {data_type}")
             try:
-                alter_query = f"""alter table {table_name} add column {field} {destination_field_type};"""
+                alter_query = f"""alter table {table_name} add column {field} {data_type};"""
                 self.execute(alter_query, self.configuration_project_id)
-                logger.info(f"Successfully added field {field} of type {destination_field_type} to table")
+                logger.info(f"Successfully added field {field} of type {data_type} to table")
 
             except Exception as e:
                 logger.error(f"{e}")
@@ -240,9 +240,7 @@ class ColumnMM:
 
         info_df = pd.DataFrame()
         number_of_rows = len(source_schema)
-        print("source_schema : ", source_schema)
-        target_data_types = [self.get_destination_field_type(self.table_config_details["source"],
-                                                             field_source_data_type)
+        target_data_types = [field_source_data_type
                              for field_source_data_type in source_schema["DATA_TYPE"]]
         info_df["data_type"] = target_data_types
 

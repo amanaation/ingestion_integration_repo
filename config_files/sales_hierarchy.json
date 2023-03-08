@@ -1,27 +1,75 @@
 {"sales_hierarchy": [
-  {"task_name": "task_climate",
-    "name": "climate",
-    "job_id": 10001,
-    "extract": true,
-    "source": "oracle",
-    "source_schema": "XEPDB1",
-    "connections": ["oracle_credentials", "connection2"],
-    "source_type": "db",
-    "destination": "bq",
-    "description": "",
-    "groupby_column": "tdate",
-    "groupby_format": "YYYY-MM-DD HH24:MI:SS",
-    "incremental_column": {"tdate": {"column_type": "timestamp", "column_format": "YYYY-MM-DD HH24:MI:SS"},
-                           "meantemp": {"column_type": "id"}},
-    "primary_columns": ["id"],
-    "schema_details": {"id": "NUMBER","tdate": "TIMESTAMP", "meantemp": "VARCHAR2", "wind_speed": "VARCHAR2", "meanpressure": "VARCHAR2"},
-    "source_system_name": "sales_hierarchy",
-    "drop_columns": ["test", "humidity"],
-    "query": "select * from climate ",
-    "batch_size": 10000,
-    "where_clause": "",
-    "use_adaptive_framework": true,
-    "target_project_id": "turing-nature-374608",
-    "target_bq_dataset_name": "test_dataset2",
-    "target_table_name": "test_climate_bq2",
-    "write_mode": "a"}]}
+  {
+              "task_name": "oracle_to_bq",
+              "extract": true,
+
+              "job_id": 10001,
+
+              "name": "climate",
+              "source": "oracle",
+              "source_system_name": "sales_hierarchy",
+              "source_schema": "XEPDB1",
+              "source_type": "db",
+              "connections": ["oracle_credentials"],
+              "description": "",
+
+              "destination": "bq",
+              "target_project_id": "activision-project",
+              "target_bq_dataset_name": "oracle_dataset",
+              "target_table_name": "oracle_to_bq",
+
+              "schema_details": {"id": "INTEGER",
+                                 "tdate": "TIMESTAMP",
+                                 "meantemp": "VARCHAR2",
+                                 "wind_speed": "VARCHAR2",
+                                 "meanpressure": "VARCHAR2",
+                                 "country": "VARCHAR2"},
+
+              "query": "select * from climate ",
+              "batch_size": 10000,
+              "where_clause": "",
+              "use_adaptive_framework": true,
+
+              "primary_columns": ["id"],
+              "incremental_column": {"tdate": {"column_type": "timestamp", "column_format": "YYYY-MM-DD HH24:MI:SS"},
+                                     "meantemp": {"column_type": "id"}},
+              "drop_columns": ["test", "humidity"],
+
+              "group_by_columns":
+                  {"tdate": {"column_type": "timestamp", "group_by_format": "mm",
+                             "column_format": "YYYY-MM-DD HH24:MI:SS"},
+                   "country": {}},
+
+              "write_mode": "truncate"
+  },
+
+  {
+              "task_name": "extract_employee_table",
+              "extract": true,
+
+              "job_id": 10003,
+
+              "name": "employees",
+              "source": "oracle",
+              "source_system_name": "sales_hierarchy",
+              "source_schema": "XEPDB1",
+              "source_type": "db",
+              "connections": ["oracle_credentials"],
+              "description": " this is the employees table",
+
+              "destination": "bq",
+              "target_project_id": "activision-project",
+              "target_bq_dataset_name": "oracle_dataset",
+              "target_table_name": "employee_table_bq",
+
+              "query": "select * from employees ",
+              "batch_size": 10000,
+              "where_clause": "",
+              "use_adaptive_framework": false,
+
+              "primary_columns": ["employee_id"],
+
+              "write_mode": "upsert"
+  }
+
+]}

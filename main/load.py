@@ -14,16 +14,8 @@ class Loader:
     def upsert_data(self, source_table_id, target_table_id, source_schema_df):
         self.target_obj.upsert_data(source_table_id, target_table_id, source_schema_df)
 
-    def load(self, df, upsert=False):
-
-        if upsert:
-            self.target_obj.upsert()
-        else:
-            if "write_mode" in self.table_details:
-                self.target_obj.save(df, self.table_details['write_mode'])
-            else:
-                self.target_obj.save(df)
-
+    def load(self, df, write_mode='append'):
+        self.target_obj.save(df, write_mode, True)
 
     # def upsert(self):
     #     self.

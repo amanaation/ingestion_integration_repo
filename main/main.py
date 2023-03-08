@@ -10,6 +10,7 @@ logging.basicConfig(format='%(asctime)s,%(msecs)03d %(levelname)-8s [%(filename)
 logger = logging.getLogger(__name__)
 
 import sys
+
 sys.path.append("../../")
 sys.path.append("/home/airflow/gcs/ingestion_integration_repo/")
 # sys.path.append("/home/airflow/gcs/ingestion_integration_repo/main/")
@@ -21,7 +22,8 @@ from dotenv import load_dotenv
 from ingestion_integration_repo.main.extract import Extraction
 from ingestion_integration_repo.main.load import Loader
 from ingestion_integration_repo.main.transformation import Transformation
-from pprint import  pprint
+from pprint import pprint
+
 warnings.filterwarnings("ignore")
 
 load_dotenv()
@@ -59,6 +61,7 @@ class Main:
             number_of_records_from_source = 0
             number_of_records_after_transformation = 0
             first_load = True
+            additional_info = ""
 
             if "incremental_column" in table:
                 incremental_columns = list(table["incremental_column"].keys())
@@ -84,9 +87,6 @@ class Main:
 
             try:
                 while True:
-
-                    additional_info = ""
-
                     result_df, return_args = next(extraction_func)
                     if not return_args["extraction_status"]:
                         extraction_obj.handle_extract_error(return_args)
@@ -104,19 +104,11 @@ class Main:
                     number_of_records_after_transformation += len(result_df)
                     # ------------------------------ End Transformation ------------------------------                     
 
-                    # ------------------------------ Start Load ------------------------------ 
+                    # ------------------------------ Start Load ------------------------------
 
                     if number_of_records_after_transformation:
 
                         if first_load:
-                            target_project_id = table['target_project_id']
-                            temp_dataset_name = "dataset_temp"
-                            temp_destination_table_name = f"{table['target_table_name']}_temp"
-                            temp_table_id = f"{target_project_id}.{temp_dataset_name}.{temp_destination_table_name}"
-
-                            logging.info(f"Starting loading into {table['target_table_name']} at {table['destination']}")
-                            loader_obj = Loader(temp_dataset_name, temp_destination_table_name, table)
-
                             logging.info(
                                 f"Getting schema details of source table `{table['name']}` from {table['source']}")
 
@@ -126,13 +118,25 @@ class Main:
                                 source_schema = pd.DataFrame(source_schema)
                             else:
                                 if "drop_columns" in table:
-                                    source_schema = extraction_obj.get_schema(*[table["name"], result_df, table["drop_columns"]])
+                                    source_schema = extraction_obj.get_schema(
+                                        *[table["name"], result_df, table["drop_columns"]])
                                 else:
                                     source_schema = extraction_obj.get_schema(*[table["name"], result_df])
-
                             logging.info(
                                 f"Following is the source schema details of `{table['name']}` from {table['source']}")
                             logger.info(f"\n{source_schema}")
+
+                        if first_load and table["source_type"] == "db" and table['write_mode'] == 'upsert':
+                            target_project_id = table['target_project_id']
+                            temp_dataset_name = "dataset_temp"
+                            temp_destination_table_name = f"{table['target_table_name']}_temp"
+                            temp_table_id = f"{target_project_id}.{temp_dataset_name}.{temp_destination_table_name}"
+
+                            logging.info(
+                                f"Starting loading into {table['target_table_name']} at {table['destination']}")
+                            loader_obj = Loader(temp_dataset_name, temp_destination_table_name, table)
+
+                            loader_obj.create_schema(source_schema, table["source"])
 
                             # ------------------------------ Start Column Mapping ------------------------------
 
@@ -143,39 +147,29 @@ class Main:
 
                             loader_obj.load(result_df)
 
+                            loader_obj = Loader(table["target_bq_dataset_name"], table["target_table_name"], table)
                             loader_obj.create_schema(source_schema, table["source"])
-                            loader_obj.dataset_name = table["target_bq_dataset_name"]
-                            loader_obj.destination_table_name = target_table_name
-                            loader_obj.table_id = f"{self.project_id}.{self.dataset_name}.{self.destination_table_name}"
-
-                            loader_obj.create_schema(source_schema, table["source"])
-                            loader_obj.upsert_data(temp_table_id, loader_obj.table_id, source_schema)
+                            loader_obj.upsert_data(temp_table_id,
+                                                   f'{table["target_bq_dataset_name"]}.{table["target_table_name"]}',
+                                                   source_schema)
 
                         else:
-                            destination_schema_created = True
-                            first_load = False
-                            loader_obj.load(result_df)
+                            if first_load:
+                                loader_obj = Loader(table["target_bq_dataset_name"], table["target_table_name"], table)
+                                loader_obj.create_schema(source_schema, table["source"])
+
+                            loader_obj.load(result_df, table['write_mode'])
+
+                        table['write_mode'] = 'append'
+
+                        first_load = False
                         logging.info(
                             f"Successfully loaded {len(result_df)} rows in {table['target_table_name']} at {table['destination']}")
 
-                        break
+                        # break
 
                         if return_args:
                             pass
-
-                #  ------------- Start Merge tables ----------------------
-                target_dataset_name = table["target_bq_dataset_name"]
-                target_table_name = table["target_table_name"]
-                target_table_id = f"{target_dataset_name}.{target_table_name}"
-
-                temp_source_table_name = f'{target_table_name}_temp'
-                temp_source_table_id = f"{temp_dataset_name}.{temp_source_table_name}"
-
-                merge_loader_obj = Loader(table["target_bq_dataset_name"], table["target_table_name"], table)
-                merge_loader_obj.create_schema(source_schema, table['source'])
-                merge_loader_obj.upsert_data(temp_source_table_id, target_table_id, source_schema)
-                #  ------------- End Merge tables ----------------------
-
 
             # ------------------------------------- End Load ---------------------------------------
 
@@ -209,7 +203,7 @@ class Main:
                     "destination_table_id": destination_table_id,
                     "system_id": system_id,
                     "job_id": table['job_id'],
-                    "connections": table["connections"],
+                    "connections": ', '.join(table["connections"]),
 
                     "extraction_status": load_status,
                     "number_of_records_from_source": number_of_records_from_source,
@@ -219,7 +213,6 @@ class Main:
                     "incremental_columns": str(incremental_columns),
                     "incremental_values": last_fetched_values,
                 }
-
                 bq_conf_obj.add_configuration_sync(sync_details)
 
                 # except Exception as e:

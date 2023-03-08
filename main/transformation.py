@@ -1,5 +1,6 @@
 import pandas as pd
 import logging
+import numpy as np
 
 logging.basicConfig(format='%(asctime)s,%(msecs)03d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
                     datefmt='%Y-%m-%d:%H:%M:%S',
@@ -40,6 +41,10 @@ class Transformation:
 
         if "drop_columns" in table_details:
             _table = self.drop_columns(_table, table_details["drop_columns"])
+
+        _table = _table.replace({np.nan: None})
+        # print(_table)
+
         return _table
 
         
