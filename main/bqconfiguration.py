@@ -213,7 +213,6 @@ class BQConfiguration:
 
             bq_client = self.get_bq_client(os.getenv("CONFIGURATION_SYNC_TABLE_NAME"))
 
-            print(bq_sync_details)
             bq_client.save(bq_sync_details)
             logger.info(f"Added configuration sync details")
 

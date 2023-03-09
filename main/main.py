@@ -54,6 +54,7 @@ class Main:
         if table["extract"]:
             # pprint(table)
             # try:
+            count = 0
             incremental_columns = []
             result_df = pd.DataFrame()
             destination_schema_created = False
@@ -86,6 +87,23 @@ class Main:
             extraction_func = extraction_obj.extract(destination_table_id)
 
             try:
+                logging.info(
+                    f"Getting schema details of source table `{table['name']}` from {table['source']}")
+
+                if "schema_details" in table:
+                    source_schema = {"COLUMN_NAME": list(table["schema_details"].keys()),
+                                     "DATA_TYPE": list(table["schema_details"].values())}
+                    source_schema = pd.DataFrame(source_schema)
+                else:
+                    if "drop_columns" in table:
+                        source_schema = extraction_obj.get_schema(
+                            *[table["name"], table["drop_columns"]])
+                    else:
+                        source_schema = extraction_obj.get_schema(*[table["name"]])
+                logging.info(
+                    f"Following is the source schema details of `{table['name']}` from {table['source']}")
+                logger.info(f"\n{source_schema}")
+
                 while True:
                     result_df, return_args = next(extraction_func)
                     if not return_args["extraction_status"]:
@@ -100,31 +118,13 @@ class Main:
                     # ------------------------------ Start Transformation ------------------------------ 
                     logging.info(f"starting transformation of {len(result_df)} rows from: {table['name']}")
                     transform = Transformation()
-                    result_df = transform.transform(result_df, table)
+                    result_df = transform.transform(result_df, table, source_schema)
                     number_of_records_after_transformation += len(result_df)
                     # ------------------------------ End Transformation ------------------------------                     
 
                     # ------------------------------ Start Load ------------------------------
 
                     if number_of_records_after_transformation:
-
-                        if first_load:
-                            logging.info(
-                                f"Getting schema details of source table `{table['name']}` from {table['source']}")
-
-                            if "schema_details" in table:
-                                source_schema = {"COLUMN_NAME": list(table["schema_details"].keys()),
-                                                 "DATA_TYPE": list(table["schema_details"].values())}
-                                source_schema = pd.DataFrame(source_schema)
-                            else:
-                                if "drop_columns" in table:
-                                    source_schema = extraction_obj.get_schema(
-                                        *[table["name"], result_df, table["drop_columns"]])
-                                else:
-                                    source_schema = extraction_obj.get_schema(*[table["name"], result_df])
-                            logging.info(
-                                f"Following is the source schema details of `{table['name']}` from {table['source']}")
-                            logger.info(f"\n{source_schema}")
 
                         if first_load and table["source_type"] == "db" and table['write_mode'] == 'upsert':
                             target_project_id = table['target_project_id']
@@ -137,6 +137,10 @@ class Main:
                             loader_obj = Loader(temp_dataset_name, temp_destination_table_name, table)
 
                             loader_obj.create_schema(source_schema, table["source"])
+                            loader_obj.load(result_df)
+
+                            loader_obj = Loader(table["target_bq_dataset_name"], table["target_table_name"], table)
+                            loader_obj.create_schema(source_schema, table["source"])
 
                             # ------------------------------ Start Column Mapping ------------------------------
 
@@ -145,10 +149,6 @@ class Main:
 
                             # ------------------------------ End Column Mapping ------------------------------
 
-                            loader_obj.load(result_df)
-
-                            loader_obj = Loader(table["target_bq_dataset_name"], table["target_table_name"], table)
-                            loader_obj.create_schema(source_schema, table["source"])
                             loader_obj.upsert_data(temp_table_id,
                                                    f'{table["target_bq_dataset_name"]}.{table["target_table_name"]}',
                                                    source_schema)
@@ -157,7 +157,10 @@ class Main:
                             if first_load:
                                 loader_obj = Loader(table["target_bq_dataset_name"], table["target_table_name"], table)
                                 loader_obj.create_schema(source_schema, table["source"])
-
+                                # break
+                                # self.match_columns(result_df.head(), table, source_schema, destination_table_id, system_id,
+                                #                    source_schema)
+                            # break
                             loader_obj.load(result_df, table['write_mode'])
 
                         table['write_mode'] = 'append'
@@ -166,7 +169,9 @@ class Main:
                         logging.info(
                             f"Successfully loaded {len(result_df)} rows in {table['target_table_name']} at {table['destination']}")
 
-                        # break
+                        if count == 10:
+                            break
+                        count += 1
 
                         if return_args:
                             pass

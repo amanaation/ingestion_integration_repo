@@ -1,7 +1,7 @@
 {"sales_hierarchy": [
   {
               "task_name": "oracle_to_bq",
-              "extract": true,
+              "extract": false,
 
               "job_id": 10001,
 
@@ -40,7 +40,7 @@
                              "column_format": "YYYY-MM-DD HH24:MI:SS"},
                    "country": {}},
 
-              "write_mode": "truncate"
+              "write_mode": "upsert"
   },
 
   {
@@ -69,7 +69,7 @@
 
               "primary_columns": ["employee_id"],
 
-              "write_mode": "upsert"
+              "write_mode": "truncate"
   }
 
 ]}

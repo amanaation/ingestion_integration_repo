@@ -34,7 +34,7 @@
     "source_schema": "gcs_climate",
     "source_gcs_project_id": "activision-project",
     "source_gcs_bucket_name": "activision-bucket",
-    "source_gcs_file_path": "sellthru/queue/inventory/2023-02-14/json",
+    "source_gcs_file_path": "sellthru/queue/inventory/2023-02-14/json_files",
     "source_system_name": "product_hierarchy",
     "frequency": "daily",
     "adaptive_framework": true,
