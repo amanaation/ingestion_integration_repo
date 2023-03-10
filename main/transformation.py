@@ -10,19 +10,21 @@ logger = logging.getLogger(__name__)
 
 class Transformation:
 
-    def __init__(self) -> None:
+    def __init__(self, **table_details) -> None:
+        self.table_details = table_details
         self.nan_value_mapping = {int: -9223372036854775808, str: 'nan'}
 
-    def drop_columns(self, table, columns_to_be_dropped):
-        for column in columns_to_be_dropped:
-            logger.info(f"Dropping column {column}")
-            try:
+    def drop_columns(self, table_data):
+        if "drop_columns" in self.table_details:
+            for column in self.table_details["drop_columns"]:
+                logger.info(f"Dropping column {column}")
+                try:
 
-                table.drop([column], axis=1, inplace=True)
-            except KeyError:
-                logger.info(f"Cannot drop column {column} : It does not exists")
+                    table_data.drop([column], axis=1, inplace=True)
+                except KeyError:
+                    logger.info(f"Cannot drop column {column} : It does not exists")
 
-        return table
+        return table_data
 
     def rectify_column_names(self, table: pd.DataFrame) -> pd.DataFrame:
         columns = []
@@ -82,11 +84,7 @@ class Transformation:
     def transform(self, _table_df, table_details, source_schema):
         _table = self.rectify_column_names(_table_df)
 
-        if "drop_columns" in table_details:
-            _table = self.drop_columns(_table, table_details["drop_columns"])
-
         _table = self.prepare_dataframe(_table, source_schema)
         _table = _table.replace({np.nan: None})
-        # print(_table)
 
         return _table
