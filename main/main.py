@@ -160,6 +160,10 @@ class Main:
                                 loader_obj.create_schema(source_schema, table["source"])
                                 self.match_columns(result_df.head(), table, source_schema, destination_table_id, system_id,
                                                    source_schema)
+                            elif table["source_type"] == "gcs":
+                                self.match_columns(result_df.head(), table, source_schema, destination_table_id, system_id,
+                                                   source_schema)
+
                             loader_obj.load(result_df, table['write_mode'])
 
                         table['write_mode'] = 'append'

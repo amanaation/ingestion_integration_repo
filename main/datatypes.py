@@ -26,12 +26,14 @@ class ORACLE2BQ(Enum):
 
 
 class GCS2BQ(Enum):
-    str = "STRING"
-    float = "FLOAT64"
-    int = "INT64"
-    date = "DATETIME"
-    timestamp = "TIMESTAMP"
-    boolean = "BOOL"
+    STR = "STRING"
+    FLOAT = "FLOAT64"
+    FLOAT64 = "FLOAT64"
+    INT = "INT64"
+    INT64 = "INT64"
+    DATE = "DATETIME"
+    TIMESTAMP = "TIMESTAMP"
+    BOOLEAN = "BOOL"
 
 
 class SourceDestinationTypeMapping(Enum):

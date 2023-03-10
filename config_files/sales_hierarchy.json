@@ -1,7 +1,7 @@
 {"sales_hierarchy": [
   {
               "task_name": "oracle_to_bq",
-              "extract": false,
+              "extract": true,
 
               "job_id": 10001,
 
@@ -47,7 +47,7 @@
               "task_name": "extract_employee_table",
               "extract": true,
 
-              "job_id": 10003,
+              "job_id": 10002,
 
               "name": "employees",
               "source": "oracle",
@@ -70,6 +70,33 @@
               "primary_columns": ["employee_id"],
 
               "write_mode": "truncate"
-  }
+  },
+  {
+              "task_name": "extract_employee2_table",
+              "extract": true,
 
+              "job_id": 10003,
+
+              "name": "employees2",
+              "source": "oracle",
+              "source_system_name": "sales_hierarchy",
+              "source_schema": "XEPDB1",
+              "source_type": "db",
+              "connections": ["oracle_credentials"],
+              "description": " this is the employees2 table",
+
+              "destination": "bq",
+              "target_project_id": "activision-project",
+              "target_bq_dataset_name": "oracle_dataset",
+              "target_table_name": "employee2_table",
+
+              "query": "select * from employees2 ",
+              "batch_size": 10000,
+              "where_clause": "",
+              "use_adaptive_framework": false,
+
+              "primary_columns": ["employee_id"],
+
+              "write_mode": "truncate"
+  }
 ]}
