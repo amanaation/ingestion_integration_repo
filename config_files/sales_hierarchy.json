@@ -1,7 +1,7 @@
 {"sales_hierarchy": [
   {
               "task_name": "oracle_to_bq",
-              "extract": true,
+              "extract": false,
 
               "job_id": 10001,
 
@@ -18,13 +18,6 @@
               "target_bq_dataset_name": "oracle_dataset",
               "target_table_name": "oracle_to_bq",
 
-              "schema_details": {"id": "INTEGER",
-                                 "tdate": "TIMESTAMP",
-                                 "meantemp": "VARCHAR2",
-                                 "wind_speed": "VARCHAR2",
-                                 "meanpressure": "VARCHAR2",
-                                 "country": "VARCHAR2"},
-
               "query": "select * from climate ",
               "batch_size": 10000,
               "where_clause": "",
@@ -32,8 +25,7 @@
 
               "primary_columns": ["id"],
               "incremental_column": {"tdate": {"column_type": "timestamp", "column_format": "YYYY-MM-DD HH24:MI:SS"},
-                                     "meantemp": {"column_type": "id"}},
-              "drop_columns": ["test", "humidity"],
+                                    "country":  {}},
 
               "group_by_columns":
                   {"tdate": {"column_type": "timestamp", "group_by_format": "mm",
@@ -45,7 +37,7 @@
 
   {
               "task_name": "extract_employee_table",
-              "extract": true,
+              "extract": false,
 
               "job_id": 10002,
 

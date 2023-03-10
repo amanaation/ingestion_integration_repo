@@ -57,10 +57,6 @@ class Transformation:
         return df
 
     def prepare_dataframe(self, df, source_schema):
-        integer_columns = []
-        float_columns = []
-        str_columns = []
-        bool_columns = []
         source_schema['DATA_TYPE'] = source_schema['DATA_TYPE'].apply(str.upper)
         for index, row in source_schema.iterrows():
             row = row.to_dict()
@@ -78,13 +74,14 @@ class Transformation:
             elif "bool" in data_type:
                 df[column] = df[column].fillna(False)
 
-        # print(" --------  ", df)
         return df
 
-    def transform(self, _table_df, table_details, source_schema):
+    def transform(self, _table_df, source_schema):
         _table = self.rectify_column_names(_table_df)
 
         _table = self.prepare_dataframe(_table, source_schema)
         _table = _table.replace({np.nan: None})
+
+        _table["connections"] = [', '.join(self.table_details["connections"])]*len(_table)
 
         return _table

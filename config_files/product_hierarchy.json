@@ -2,7 +2,7 @@
   {"task_name": "load_csv_data",
     "name": "gcs_climate",
     "job_id": 10002,
-    "extract": true,
+    "extract": false,
     "connections": ["csv_credentials"],
     "source": "gcs",
     "source_type": "file",

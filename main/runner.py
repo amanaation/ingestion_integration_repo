@@ -10,7 +10,7 @@ from ingestion_integration_repo.ingestion_core_repo.BigQuery import BigQuery
 
 load_dotenv()
 source_system_name = ["sales_hierarchy", "product_hierarchy"]
-source_system_name = "product_hierarchy"
+source_system_name = "sales_hierarchy"
 
 bucket_name = "configs_repo"
 
@@ -28,7 +28,7 @@ for table in tables:
         # BigQuery(table["target_bq_dataset_name"], table["target_table_name"], **table).save(df, source_schema, "truncate")
         print("breaking")
 
-        # break
+        break
 #             # pprint(table)
 
 

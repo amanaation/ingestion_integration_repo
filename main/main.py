@@ -126,7 +126,7 @@ class Main:
                             logger.info(f"\n{source_schema}")
                             # ------------------------------ End get source schema ------------------------------
 
-                        result_df = transform.transform(result_df, table, source_schema)
+                        result_df = transform.transform(result_df, source_schema)
                         if first_load and table["source_type"] == "db" and table['write_mode'] == 'upsert':
                             target_project_id = table['target_project_id']
                             temp_dataset_name = "dataset_temp"
@@ -171,57 +171,49 @@ class Main:
                         first_load = False
                         logging.info(
                             f"Successfully loaded {len(result_df)} rows in {table['target_table_name']} at {table['destination']}")
+                    # ------------------------------------- End Load ---------------------------------------
 
-                        if return_args:
-                            pass
+                    # ------------------------------ Start Transaction Logging ------------------------------
 
-            # ------------------------------------- End Load ---------------------------------------
+                    last_fetched_values = extraction_obj.get_last_successful_extract()
+                    logger.info(f"Last fetched values : {last_fetched_values}")
 
-            # ------------------------------ Start Transaction Logging ------------------------------ 
+                    load_status = "Success"
 
+                    try:
+                        pass
+                    except Exception as e:
+                        logging.error(e)
+                        additional_info = e
+                        load_status = "Failed"
+
+                    finally:
+                        logging.info(f"Logging transaction history in the reporting table")
+                        extraction_end_time = datetime.datetime.now()
+
+                        # try:
+                        # Log transaction history
+                        sync_details = {
+                            "destination_table_id": destination_table_id,
+                            "system_id": system_id,
+                            "job_id": table['job_id'],
+                            "connections": ', '.join(table["connections"]),
+
+                            "extraction_status": load_status,
+                            "number_of_records_from_source": number_of_records_from_source,
+                            "number_of_records_pushed_to_destination": number_of_records_after_transformation,
+
+                            "additional_info": str(additional_info),
+                            "incremental_columns": str(incremental_columns),
+                            "incremental_values": last_fetched_values,
+                        }
+                        bq_conf_obj.add_configuration_sync(sync_details)
             except StopIteration:
                 pass
-
-            # last_fetched_values = extraction_obj.update_last_successful_extract()
-            last_fetched_values = extraction_obj.get_last_successful_extract()
-            logger.info(f"Last fetched values : {last_fetched_values}")
-
-            load_status = "Success"
             logging.info(
                 f"Completed loaded {number_of_records_after_transformation} records into {table['target_table_name']} at {table['destination']}")
 
-            try:
-                pass
-            except Exception as e:
-                logging.error(e)
-                additional_info = e
-                load_status = "Failed"
-
-            finally:
-                logging.info(f"Logging transaction history in the reporting table")
-                extraction_end_time = datetime.datetime.now()
-
-                # try:
-                # Log transaction history
-                sync_details = {
-                    "destination_table_id": destination_table_id,
-                    "system_id": system_id,
-                    "job_id": table['job_id'],
-                    "connections": ', '.join(table["connections"]),
-
-                    "extraction_status": load_status,
-                    "number_of_records_from_source": number_of_records_from_source,
-                    "number_of_records_pushed_to_destination": number_of_records_after_transformation,
-
-                    "additional_info": str(additional_info),
-                    "incremental_columns": str(incremental_columns),
-                    "incremental_values": last_fetched_values,
-                }
-                bq_conf_obj.add_configuration_sync(sync_details)
-
-                # except Exception as e:
-                #     logging.error("Failed to log status in the reporting table")
-            # ------------------------------ End Transaction Logging ------------------------------ 
+            # ------------------------------ End Transaction Logging ------------------------------
             print("#" * 140)
             logger.info(f"       Completed ETL for : {table['name']} at {extraction_start_time}       ")
             print("#" * 140)
