@@ -13,7 +13,6 @@ import sys
 
 sys.path.append("../../")
 sys.path.append("/home/airflow/gcs/ingestion_integration_repo/")
-# sys.path.append("/home/airflow/gcs/ingestion_integration_repo/main/")
 
 
 from ingestion_integration_repo.main.bqconfiguration import BQConfiguration
@@ -23,6 +22,7 @@ from ingestion_integration_repo.main.extract import Extraction
 from ingestion_integration_repo.main.load import Loader
 from ingestion_integration_repo.main.transformation import Transformation
 from pprint import pprint
+from uuid import uuid4
 
 warnings.filterwarnings("ignore")
 
@@ -46,9 +46,6 @@ class Main:
         """
             This function is the main function to call and start the extract
         """
-
-        logger.info(f"Reading config files from path {os.getenv('CONFIG_FILES_PATH')}")
-
         # Reading configs
 
         if table["extract"]:
@@ -118,7 +115,7 @@ class Main:
                         if first_load and table["source_type"] == "db" and table['write_mode'] == 'upsert':
                             target_project_id = table['target_project_id']
                             temp_dataset_name = "dataset_temp"
-                            temp_destination_table_name = f"{table['target_table_name']}_temp"
+                            temp_destination_table_name = f"{table['target_table_name']}_temp_{uuid4}"
                             temp_table_id = f"{target_project_id}.{temp_dataset_name}.{temp_destination_table_name}"
 
                             logging.info(
@@ -196,9 +193,9 @@ class Main:
                         }
                         bq_conf_obj.add_configuration_sync(sync_details)
 
-                        if count >= 3:
-                            break
-                        count += 1
+                        # if count >= 3:
+                        #     break
+                        # count += 1
             except StopIteration:
                 pass
             logging.info(

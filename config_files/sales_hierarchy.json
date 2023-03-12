@@ -1,11 +1,10 @@
 {"sales_hierarchy": [
   {
-              "task_name": "oracle_to_bq",
               "extract": true,
 
               "job_id": 10001,
 
-              "name": "climate",
+              "name": "climate2",
               "source": "oracle",
               "source_system_name": "sales_hierarchy",
               "source_schema": "XEPDB1",
@@ -18,14 +17,14 @@
               "target_bq_dataset_name": "oracle_dataset",
               "target_table_name": "oracle_to_bq",
 
-              "query": "select * from climate ",
+              "query": "select * from climate2 ",
               "batch_size": 10000,
               "where_clause": "",
               "use_adaptive_framework": true,
 
               "primary_columns": ["id"],
-              "incremental_column": {"tdate": {"column_type": "timestamp", "column_format": "YYYY-MM-DD HH24:MI:SS"},
-                                    "country":  {}},
+              "incremental_column": {"tdate": {"column_type": "timestamp", "column_format": "YYYY-MM-DD HH24:MI:SS"}
+                                    },
 
               "group_by_columns":
                   {"tdate": {"column_type": "timestamp", "group_by_format": "mm",
@@ -65,7 +64,7 @@
   },
   {
               "task_name": "extract_employee2_table",
-              "extract": true,
+              "extract": false,
 
               "job_id": 10003,
 

@@ -60,8 +60,10 @@ class Transformation:
         source_schema['DATA_TYPE'] = source_schema['DATA_TYPE'].apply(str.upper)
         for index, row in source_schema.iterrows():
             row = row.to_dict()
-            data_type = row['DATA_TYPE']
+            data_type = row['DATA_TYPE'].lower()
             column = row['COLUMN_NAME']
+
+            print(" ------- ", column, data_type)
             if "int" in data_type or "number" in data_type:
                 df[column] = df[column].fillna(self.nan_value_mapping[int]).values.astype(int)
 

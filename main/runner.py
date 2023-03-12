@@ -14,7 +14,7 @@ from ingestion_integration_repo.main.bqconfiguration import BQConfiguration
 load_dotenv()
 source_system_name = ["sales_hierarchy", "product_hierarchy"]
 source_system_name = "sales_hierarchy"
-read_local_configs = False
+read_local_configs = True
 
 if read_local_configs:
     from ingestion_integration_repo.main.read_local_configs import Config
@@ -27,10 +27,11 @@ else:
 
 for table in tables:
     table = table[source_system_name]
-
-    pprint(table)
-
     if table['extract']:
+        pprint(table)
+
+        # print(OracleDatabaseConnection(**table).get_dynamic_limit({}, table["name"], 100, table["group_by_columns"]))
+        # break
 
         # ------------------------------ Start Configuration entry ------------------------------ 
 
