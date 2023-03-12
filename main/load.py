@@ -11,11 +11,9 @@ class Loader:
         self.source_schema = schema_df
         self.target_obj.create_schema(schema_df, source)
 
-    def upsert_data(self, source_table_id, target_table_id, source_schema_df):
-        self.target_obj.upsert_data(source_table_id, target_table_id, source_schema_df)
+    def upsert_data(self, source_table_id, target_table_id):
+        self.target_obj.upsert_data(source_table_id, target_table_id)
 
     def load(self, df, write_mode='append'):
+        df["connections"] = [', '.join(self.table_details["connections"])] * len(df)
         self.target_obj.save(df, write_mode, True)
-
-    # def upsert(self):
-    #     self.

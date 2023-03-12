@@ -42,7 +42,7 @@ class Main:
     def complete_transaction_logging(self):
         pass
 
-    def run(self, table):
+    def run(self, table, system_id, destination_table_id):
         """
             This function is the main function to call and start the extract
         """
@@ -52,8 +52,6 @@ class Main:
         # Reading configs
 
         if table["extract"]:
-            # pprint(table)
-            # try:
             count = 0
             incremental_columns = []
             result_df = pd.DataFrame()
@@ -73,17 +71,7 @@ class Main:
             print("#" * 140)
             bq_conf_obj = BQConfiguration()
 
-            # ------------------------------ Start Configuration entry ------------------------------ 
-
-            system_id = bq_conf_obj.add_configuration_system(table)
-
-            configuration_details_df = bq_conf_obj.add_configuration(table, system_id)
-            destination_table_id = configuration_details_df["destination_table_id"].iloc[0]
-
-            # ------------------------------ End Configuration entry ------------------------------ 
-
             extraction_obj = Extraction(table)
-
             extraction_func = extraction_obj.extract(destination_table_id)
 
             try:
@@ -151,8 +139,7 @@ class Main:
                             # ------------------------------ End Column Mapping ------------------------------
 
                             loader_obj.upsert_data(temp_table_id,
-                                                   f'{table["target_bq_dataset_name"]}.{table["target_table_name"]}',
-                                                   source_schema)
+                                                   f'{table["target_bq_dataset_name"]}.{table["target_table_name"]}')
 
                         else:
                             if first_load:
@@ -188,7 +175,7 @@ class Main:
                         load_status = "Failed"
 
                     finally:
-                        logging.info(f"Logging transaction history in the reporting table")
+                        logging.info(f"Logging sync details in the sync table")
                         extraction_end_time = datetime.datetime.now()
 
                         # try:
@@ -208,6 +195,10 @@ class Main:
                             "incremental_values": last_fetched_values,
                         }
                         bq_conf_obj.add_configuration_sync(sync_details)
+
+                        if count >= 3:
+                            break
+                        count += 1
             except StopIteration:
                 pass
             logging.info(

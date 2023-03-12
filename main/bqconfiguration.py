@@ -2,7 +2,7 @@ import os
 import pandas as pd
 import logging
 import sys
-
+import json
 sys.path.append('../')
 
 logging.basicConfig(format='%(asctime)s,%(msecs)03d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
@@ -122,12 +122,12 @@ class BQConfiguration:
 
             bq_client.save(bq_configuration_details)
             logger.info(
-                f"Added configuration details with system id : {bq_configuration_details['system_id'].iloc[0]} and object id : {bq_configuration_details['destination_table_id'].iloc[0]}")
+                f"Added configuration details with system id : {bq_configuration_details['system_id'].iloc[0]} and destination table id : {bq_configuration_details['destination_table_id'].iloc[0]}")
 
             return bq_configuration_details
 
         logger.info(
-            f"Configuration details exists with system id : {existing_configuration_details['system_id'].iloc[0]} and object id : {existing_configuration_details['destination_table_id'].iloc[0]}")
+            f"Configuration details exists with source system id : {existing_configuration_details['system_id'].iloc[0]} and destination table id : {existing_configuration_details['destination_table_id'].iloc[0]}")
         return existing_configuration_details
 
     def add_configuration_job(self, job_details: dict) -> None:
@@ -164,6 +164,7 @@ class BQConfiguration:
                f"number_of_records_from_source = {sync_details['number_of_records_from_source']} ,"  \
                f"number_of_records_pushed_to_destination = {sync_details['number_of_records_pushed_to_destination']}" \
                f" where destination_table_id = '{sync_details['destination_table_id']}'"
+        print("Updating : ", _sql)
 
         bq_client = self.get_bq_client(os.getenv("CONFIGURATION_SYNC_TABLE_NAME"))
         bq_client.execute(_sql, bq_client.project_id)
@@ -345,6 +346,6 @@ class BQConfiguration:
         # incremental_values =
         if not result.empty:
             last_extract = result["incremental_values"].iloc[0]
+            last_extract = json.loads(last_extract)
             return last_extract
-
         return None

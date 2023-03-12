@@ -3,33 +3,47 @@ from config import Config
 from main import Main
 from pprint import pprint
 from dotenv import load_dotenv
-from ingestion_integration_repo.main.column_matching import ColumnMM
+
+from ingestion_integration_repo.main.main import Main
 from ingestion_integration_repo.ingestion_core_repo.Oracle import OracleDatabaseConnection
-from ingestion_integration_repo.main.transformation import Transformation
-from ingestion_integration_repo.ingestion_core_repo.BigQuery import BigQuery
+from ingestion_integration_repo.main.bqconfiguration import BQConfiguration
+
 
 load_dotenv()
 source_system_name = ["sales_hierarchy", "product_hierarchy"]
 source_system_name = "sales_hierarchy"
+read_local_configs = True
 
-bucket_name = "configs_repo"
-
-tables = Config(bucket_name).get_config(source_system_name)
+if read_local_configs:
+    from ingestion_integration_repo.main.read_local_configs import Config
+    folder_path = "/Users/amanmishra/Desktop/tredence/restructured/temp"
+    tables = Config(folder_path).get_config(source_system_name)
+else:
+    bucket_name = "configs_repo"
+    tables = Config(bucket_name).get_config(source_system_name)
 
 for table in tables:
     table = table[source_system_name]
 
-    print(table)
+    pprint(table)
 
     if table['extract']:
+
+        # ------------------------------ Start Configuration entry ------------------------------ 
+
+        bq_conf_obj = BQConfiguration()
+        system_id = bq_conf_obj.add_configuration_system(table)
+
+        configuration_details_df = bq_conf_obj.add_configuration(table, system_id)
+        destination_table_id = configuration_details_df["destination_table_id"].iloc[0]
+
+        # ------------------------------ End Configuration entry ------------------------------ 
+
+
         table["source_system_name"] = source_system_name
-        Main().run(table)
-        # df = Transformation().transform(df, table)
-        # BigQuery(table["target_bq_dataset_name"], table["target_table_name"], **table).save(df, source_schema, "truncate")
-        print("breaking")
+        Main().run(table, system_id, destination_table_id)
+
+        # df = pd.read_csv("/Users/amanmishra/Desktop/tredence/restructured/test_data/CLIMATE.csv")
+        # print(OracleDatabaseConnection(**table).update_last_successful_extract(df, {"tdate": "2020-12-10 00:00:00", "country": "india"}))
 
         break
-#             # pprint(table)
-
-
-# odb = OracleDatabaseConnection
