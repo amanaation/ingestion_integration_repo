@@ -1,7 +1,7 @@
 {"sales_hierarchy": [
   {
               "task_name": "oracle_to_bq",
-              "extract": false,
+              "extract": true,
 
               "job_id": 10001,
 

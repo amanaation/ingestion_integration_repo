@@ -1,4 +1,6 @@
+import os
 import pandas as pd
+
 from config import Config
 from main import Main
 from pprint import pprint
@@ -12,15 +14,16 @@ from ingestion_integration_repo.main.bqconfiguration import BQConfiguration
 load_dotenv()
 source_system_name = ["sales_hierarchy", "product_hierarchy"]
 source_system_name = "sales_hierarchy"
-read_local_configs = True
+read_local_configs = False
 
 if read_local_configs:
     from ingestion_integration_repo.main.read_local_configs import Config
     folder_path = "/Users/amanmishra/Desktop/tredence/restructured/temp"
     tables = Config(folder_path).get_config(source_system_name)
 else:
-    bucket_name = "configs_repo"
-    tables = Config(bucket_name).get_config(source_system_name)
+    bucket_name = os.getenv("CONFIG_FILES_BUCKET_NAME")
+    prefix = os.getenv("CONFIGS_FILES_PATH")
+    tables = Config(bucket_name).get_config(source_system_name,prefix=prefix)
 
 for table in tables:
     table = table[source_system_name]

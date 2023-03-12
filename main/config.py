@@ -26,7 +26,7 @@ class Config:
             file_path = f"gs://{self.bucket_name}/{prefix}/{source_system_name}.json"
         else:
             file_path = f"gs://{self.bucket_name}/{source_system_name}.json"
-
+        logger.info(f"Reading config file from : {file_path}")
         config = pd.read_json(file_path)
         config = config.to_dict(orient='records')
 
